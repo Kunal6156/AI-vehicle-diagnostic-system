@@ -1,0 +1,156 @@
+{
+  "car_info": {
+    "model": "Maruti Suzuki Alto",
+    "variants": ["Alto 800", "Alto K10"],
+    "fuel_type": ["Petrol", "CNG"]
+  },
+  "dashboard_components": {
+    "speedometer": {
+      "description": "Shows vehicle speed in km/h",
+      "location": "Center of instrument cluster",
+      "common_issues": ["Needle stuck", "Inaccurate reading"],
+      "search_terms": ["Alto speedometer not working", "Alto speedometer repair"]
+    },
+    "fuel_gauge": {
+      "description": "Indicates fuel level in tank",
+      "location": "Right side of instrument cluster",
+      "common_issues": ["Incorrect reading", "Stuck at empty/full"],
+      "search_terms": ["Alto fuel gauge problem", "Alto fuel sensor replacement"]
+    },
+    "temperature_gauge": {
+      "description": "Shows engine coolant temperature",
+      "location": "Left side of instrument cluster",
+      "common_issues": ["Overheating warning", "Sensor malfunction"],
+      "search_terms": ["Alto engine overheating", "Alto temperature sensor"]
+    },
+    "odometer": {
+      "description": "Displays total distance traveled",
+      "location": "Digital display in instrument cluster",
+      "common_issues": ["Display not working", "Reset issues"],
+      "search_terms": ["Alto odometer repair", "Alto digital display problem"]
+    }
+  },
+  "warning_lights": {
+    "engine_check": {
+      "symbol": "Engine icon",
+      "color": "Yellow/Amber",
+      "meaning": "Engine control system malfunction",
+      "action": "Get engine diagnosed immediately",
+      "search_terms": ["Alto check engine light", "Alto engine diagnostic"]
+    },
+    "oil_pressure": {
+      "symbol": "Oil can icon",
+      "color": "Red",
+      "meaning": "Low engine oil pressure",
+      "action": "Stop vehicle and check oil level",
+      "search_terms": ["Alto oil pressure warning", "Alto oil change"]
+    },
+    "battery": {
+      "symbol": "Battery icon",
+      "color": "Red",
+      "meaning": "Charging system problem",
+      "action": "Check battery and alternator",
+      "search_terms": ["Alto battery light on", "Alto alternator problem"]
+    },
+    "brake_warning": {
+      "symbol": "Brake icon with exclamation",
+      "color": "Red",
+      "meaning": "Brake system issue or parking brake engaged",
+      "action": "Check parking brake, brake fluid level",
+      "search_terms": ["Alto brake warning light", "Alto brake fluid check"]
+    },
+    "abs": {
+      "symbol": "ABS letters in circle",
+      "color": "Yellow",
+      "meaning": "Anti-lock braking system fault",
+      "action": "Get ABS system checked",
+      "search_terms": ["Alto ABS light", "Alto ABS repair"]
+    },
+    "airbag": {
+      "symbol": "Airbag icon",
+      "color": "Red",
+      "meaning": "Airbag system malfunction",
+      "action": "Visit service center immediately",
+      "search_terms": ["Alto airbag light", "Alto airbag sensor problem"]
+    },
+    "seat_belt": {
+      "symbol": "Person with seat belt",
+      "color": "Red",
+      "meaning": "Seat belt not fastened",
+      "action": "Fasten seat belt",
+      "search_terms": ["Alto seat belt warning"]
+    },
+    "door_open": {
+      "symbol": "Car with open door",
+      "color": "Red",
+      "meaning": "Door not properly closed",
+      "action": "Close all doors properly",
+      "search_terms": ["Alto door sensor problem"]
+    }
+  },
+  "controls_buttons": {
+    "hazard_light": {
+      "symbol": "Red triangle",
+      "function": "Activates all turn signals simultaneously",
+      "usage": "Emergency situations or roadside stops",
+      "search_terms": ["Alto hazard light not working"]
+    },
+    "ac_button": {
+      "symbol": "A/C",
+      "function": "Activates air conditioning compressor",
+      "usage": "Press to cool cabin air",
+      "search_terms": ["Alto AC not cooling", "Alto AC repair"]
+    },
+    "defogger": {
+      "symbol": "Windshield with wavy lines",
+      "function": "Clears fog from rear windshield",
+      "usage": "Use in rainy/cold weather",
+      "search_terms": ["Alto defogger not working"]
+    },
+    "power_window": {
+      "symbol": "Window up/down arrows",
+      "function": "Electric window control",
+      "usage": "Press to open/close windows",
+      "search_terms": ["Alto power window problem", "Alto window regulator"]
+    },
+    "central_locking": {
+      "symbol": "Lock icon",
+      "function": "Locks/unlocks all doors simultaneously",
+      "usage": "Press to lock/unlock from driver side",
+      "search_terms": ["Alto central locking not working"]
+    }
+  },
+  "common_problems": {
+    "starting_issues": {
+      "symptoms": ["Engine cranks but doesn't start", "No crank no start", "Intermittent starting"],
+      "possible_causes": ["Dead battery", "Faulty starter motor", "Fuel pump issue", "Ignition switch problem"],
+      "search_terms": ["Alto starting problem", "Alto not starting", "Alto starter motor"]
+    },
+    "ac_problems": {
+      "symptoms": ["AC not cooling", "Weak cooling", "Strange noise from AC", "AC compressor not engaging"],
+      "possible_causes": ["Low refrigerant", "Compressor failure", "Condenser blockage", "AC belt issue"],
+      "search_terms": ["Alto AC gas filling", "Alto AC compressor repair", "Alto AC service"]
+    },
+    "brake_issues": {
+      "symptoms": ["Squeaking noise", "Soft brake pedal", "Brake pedal goes to floor", "Vibration while braking"],
+      "possible_causes": ["Worn brake pads", "Brake fluid leak", "Air in brake lines", "Warped brake discs"],
+      "search_terms": ["Alto brake pad replacement", "Alto brake bleeding", "Alto brake disc"]
+    },
+    "electrical_problems": {
+      "symptoms": ["Lights flickering", "Battery draining", "Power window not working", "Dashboard lights dim"],
+      "possible_causes": ["Alternator fault", "Battery aging", "Loose connections", "Fuse blown"],
+      "search_terms": ["Alto electrical problem", "Alto battery drain", "Alto fuse box location"]
+    },
+    "engine_overheating": {
+      "symptoms": ["Temperature gauge in red zone", "Steam from hood", "Sweet smell", "Loss of coolant"],
+      "possible_causes": ["Coolant leak", "Thermostat failure", "Radiator blockage", "Water pump failure"],
+      "search_terms": ["Alto overheating problem", "Alto coolant leak", "Alto radiator flush"]
+    }
+  },
+  "maintenance_schedule": {
+    "every_5000_km": ["Engine oil change", "Oil filter replacement", "Visual inspection"],
+    "every_10000_km": ["Air filter check", "Spark plug inspection", "Brake pad check", "Tire rotation"],
+    "every_20000_km": ["Transmission oil change", "Coolant replacement", "Fuel filter replacement"],
+    "yearly": ["Battery check", "AC gas check", "Alignment and balancing", "Full vehicle inspection"]
+  }
+}

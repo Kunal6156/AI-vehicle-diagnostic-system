@@ -1,0 +1,166 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="hero-section">
+    <div class="container">
+        <h1 class="hero-title">Alto Car Digital Manual</h1>
+        <p class="hero-subtitle">AI-Powered Multimodal Assistant for Your Maruti Suzuki Alto</p>
+        <p class="hero-description">
+            Upload images or videos, ask questions, and get instant AI-powered diagnostics 
+            with YouTube video tutorials for repairs and maintenance.
+        </p>
+    </div>
+</div>
+
+<div class="container">
+    <div class="analysis-section">
+        <h2 class="section-title">Analyze Your Alto Car Issue</h2>
+        
+        <div class="tabs">
+            <button class="tab-btn active" onclick="switchTab('image')">📷 Image Analysis</button>
+            <button class="tab-btn" onclick="switchTab('video')">🎥 Video Analysis</button>
+            <button class="tab-btn" onclick="switchTab('text')">💬 Ask Question</button>
+        </div>
+
+        <!-- Image Analysis Tab -->
+        <div id="image-tab" class="tab-content active">
+            <div class="upload-section">
+                <h3>Upload Car Component Image</h3>
+                <p class="help-text">Upload a photo of dashboard, warning light, button, or any car component</p>
+                
+                <div class="upload-area" id="image-upload-area">
+                    <input type="file" id="image-input" accept="image/*" onchange="handleImageSelect(event)" hidden>
+                    <label for="image-input" class="upload-label">
+                        <div class="upload-icon">📁</div>
+                        <p>Click to upload or drag and drop</p>
+                        <p class="upload-hint">PNG, JPG, JPEG, GIF (Max 16MB)</p>
+                    </label>
+                </div>
+                
+                <div id="image-preview" class="preview-area" style="display: none;">
+                    <img id="preview-img" src="" alt="Preview">
+                    <button onclick="clearImage()" class="btn-secondary">Remove</button>
+                </div>
+                
+                <button id="analyze-image-btn" class="btn-primary" onclick="analyzeImage()" style="display: none;">
+                    Analyze Image
+                </button>
+            </div>
+        </div>
+
+        <!-- Video Analysis Tab -->
+        <div id="video-tab" class="tab-content">
+            <div class="upload-section">
+                <h3>Upload Car Issue Video</h3>
+                <p class="help-text">Upload a video showing the car problem or component</p>
+                
+                <div class="upload-area" id="video-upload-area">
+                    <input type="file" id="video-input" accept="video/*" onchange="handleVideoSelect(event)" hidden>
+                    <label for="video-input" class="upload-label">
+                        <div class="upload-icon">🎬</div>
+                        <p>Click to upload or drag and drop</p>
+                        <p class="upload-hint">MP4, AVI, MOV (Max 16MB)</p>
+                    </label>
+                </div>
+                
+                <div id="video-preview" class="preview-area" style="display: none;">
+                    <video id="preview-video" controls style="max-width: 100%; max-height: 400px;"></video>
+                    <button onclick="clearVideo()" class="btn-secondary">Remove</button>
+                </div>
+                
+                <button id="analyze-video-btn" class="btn-primary" onclick="analyzeVideo()" style="display: none;">
+                    Analyze Video
+                </button>
+            </div>
+        </div>
+
+        <!-- Text Query Tab -->
+        <div id="text-tab" class="tab-content">
+            <div class="upload-section">
+                <h3>Ask About Your Alto Car</h3>
+                <p class="help-text">Describe your problem or ask any question about your Alto car</p>
+                
+                <textarea id="text-query" class="text-input" placeholder="Example: My Alto AC is not cooling properly, what could be the issue?&#10;&#10;Example: What does the red battery light mean on my dashboard?&#10;&#10;Example: How to change Alto engine oil?" rows="6"></textarea>
+                
+                <button class="btn-primary" onclick="analyzeText()">Get Answer & Videos</button>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loading" class="loading" style="display: none;">
+            <div class="spinner"></div>
+            <p>Analyzing with AI... Please wait</p>
+        </div>
+
+        <!-- Results Section -->
+        <div id="results" class="results-section" style="display: none;">
+            <h3>Analysis Results</h3>
+            
+            <div class="result-card">
+                <h4>🔍 AI Analysis</h4>
+                <div id="analysis-text" class="analysis-text"></div>
+            </div>
+
+            <div class="result-card">
+                <h4>📺 Related YouTube Tutorials</h4>
+                <div id="videos-container" class="videos-grid"></div>
+            </div>
+        </div>
+
+        <!-- Error Display -->
+        <div id="error" class="error-message" style="display: none;"></div>
+    </div>
+
+    <!-- Features Section -->
+    <div class="features-section">
+        <h2 class="section-title">Features</h2>
+        <div class="features-grid">
+            <div class="feature-card">
+                <div class="feature-icon">🤖</div>
+                <h3>AI-Powered Analysis</h3>
+                <p>Advanced Gemini AI analyzes images and videos to identify car components and issues</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📹</div>
+                <h3>Video Tutorials</h3>
+                <p>Get relevant YouTube repair videos automatically based on your issue</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">💡</div>
+                <h3>Instant Solutions</h3>
+                <p>Quick troubleshooting steps and maintenance tips for your Alto</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📱</div>
+                <h3>Easy to Use</h3>
+                <p>Simple interface - just upload, ask, or show the problem</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- About Section -->
+    <div id="about" class="about-section">
+        <h2 class="section-title">About This Project</h2>
+        <div class="about-content">
+            <p>
+                This is a DRDO (Defence Research and Development Organisation) project that demonstrates 
+                the application of AI and machine learning in automotive diagnostics. The system uses:
+            </p>
+            <ul>
+                <li><strong>Google Gemini 1.5 Flash:</strong> For multimodal image and text analysis</li>
+                <li><strong>YouTube Data API:</strong> For finding relevant repair tutorials</li>
+                <li><strong>Custom Knowledge Base:</strong> Maruti Suzuki Alto specific information</li>
+                <li><strong>Flask Web Framework:</strong> For backend API and web serving</li>
+            </ul>
+            <p>
+                The system can identify dashboard components, warning lights, buttons, and diagnose 
+                common issues in Maruti Suzuki Alto cars (Alto 800 and Alto K10 models).
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/analysis.js') }}"></script>
+{% endblock %}
