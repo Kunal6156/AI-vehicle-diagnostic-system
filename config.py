@@ -27,7 +27,7 @@ class Config:
     APP_VERSION = os.getenv('APP_VERSION', '1.0.0')
     
     # Gemini Model Configuration
-    GEMINI_MODEL = 'gemini-1.5-pro-latest'
+    GEMINI_MODEL = 'models/gemini-2.5-flash'
     GEMINI_TEMPERATURE = 0.7
     GEMINI_MAX_TOKENS = 2048
     
