@@ -101,23 +101,23 @@ def analyze():
             analysis_result = gemini_service.analyze_image(filepath)
             
             if analysis_result['success']:
-                # Extract search keywords from analysis
-                analysis_text = analysis_result['analysis']
-                
-                # Generate search queries based on analysis
-                search_queries = [
-                    f"Alto {analysis_result.get('component_type', 'repair')}",
-                    "Alto car maintenance"
-                ]
-                
-                # Search YouTube
-                youtube_result = youtube_service.search_multiple_queries(search_queries)
+                # Use search keywords extracted from Gemini analysis
+                search_keywords = analysis_result.get('search_keywords', [])
+
+                # Fallback queries if no keywords extracted
+                if not search_keywords:
+                    component_type = analysis_result.get('component_type', 'repair')
+                    search_keywords = [f"Alto {component_type} repair", "Alto car maintenance"]
+
+                # Search YouTube using extracted keywords
+                youtube_result = youtube_service.search_multiple_queries(search_keywords)
                 
                 return jsonify({
                     'success': True,
                     'type': 'image',
                     'analysis': analysis_result['analysis'],
                     'component_type': analysis_result.get('component_type', 'unknown'),
+                    'search_keywords': search_keywords,
                     'videos': youtube_result.get('videos', []),
                     'image_url': f'/uploads/{filename}',
                     'timestamp': datetime.now().isoformat()

@@ -58,11 +58,16 @@ Provide a detailed, practical response that would help an Alto car owner underst
 
             # Generate response
             response = self.model.generate_content([prompt, img])
-            
+            response_text = response.text
+
+            # Extract search keywords from the response
+            search_keywords = self._extract_search_keywords(response_text)
+
             return {
                 'success': True,
-                'analysis': response.text,
-                'component_type': self._extract_component_type(response.text)
+                'analysis': response_text,
+                'component_type': self._extract_component_type(response_text),
+                'search_keywords': search_keywords
             }
             
         except Exception as e:
@@ -192,16 +197,26 @@ Be specific to Maruti Alto cars when possible."""
     
     def _extract_search_keywords(self, text):
         """Extract search keywords from analysis text"""
-        # Simple extraction - look for keyword patterns
         keywords = []
         lines = text.split('\n')
-        
+
         for line in lines:
-            if 'keyword' in line.lower() or 'search' in line.lower():
-                # Extract keywords from this line
-                parts = line.split(':')
-                if len(parts) > 1:
-                    potential_keywords = parts[1].strip().split(',')
-                    keywords.extend([k.strip() for k in potential_keywords[:5]])
-        
+            line_lower = line.lower().strip()
+            # Match lines like "SEARCH KEYWORDS: Alto X, Alto Y" or "Keywords: ..."
+            if 'keyword' in line_lower or 'search' in line_lower:
+                # Extract text after the colon
+                if ':' in line:
+                    content = line.split(':', 1)[1].strip()
+                    # Split by comma or newline
+                    parts = content.split(',')
+                    for part in parts:
+                        kw = part.strip().strip('-*•').strip()
+                        if kw and len(kw) > 2:
+                            keywords.append(kw)
+            # Also collect lines that look like direct keyword lists (short phrases ending with common separators)
+            elif line.strip().startswith(('-', '*', '•')) and len(line.strip()) < 100:
+                kw = line.strip().lstrip('-*•').strip()
+                if kw and len(kw) > 2:
+                    keywords.append(kw)
+
         return keywords[:5] if keywords else ['Alto car repair', 'Maruti Alto maintenance']
