@@ -3,6 +3,7 @@ import os
 from werkzeug.utils import secure_filename
 import json
 from datetime import datetime
+import cv2
 
 from config import Config
 from models.gemini_service import GeminiService
@@ -14,6 +15,48 @@ app.config.from_object(Config)
 
 # Ensure upload folder exists
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
+
+def extract_video_frame(video_path, output_dir, frame_number=0):
+    """
+    Extract a specific frame from a video file.
+
+    Args:
+        video_path: Path to the video file
+        output_dir: Directory to save the extracted frame
+        frame_number: Frame index to extract (default: 0 = first frame)
+
+    Returns:
+        str: Path to the extracted frame image, or None if extraction fails
+    """
+    try:
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            print(f"Error: Could not open video file {video_path}")
+            return None
+
+        # Set frame position
+        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
+
+        ret, frame = cap.read()
+        cap.release()
+
+        if not ret:
+            print(f"Error: Could not read frame {frame_number} from video")
+            return None
+
+        # Generate output filename
+        video_filename = os.path.basename(video_path)
+        frame_filename = f"frame_{frame_number}_{video_filename.rsplit('.', 1)[0]}.jpg"
+        frame_path = os.path.join(output_dir, frame_filename)
+
+        # Save frame
+        cv2.imwrite(frame_path, frame)
+        return frame_path
+
+    except Exception as e:
+        print(f"Error extracting video frame: {e}")
+        return None
 
 # Initialize services
 try:
@@ -126,30 +169,66 @@ def analyze():
                 return jsonify(analysis_result), 500
         
         elif request_type == 'video':
-            # Handle video upload (simplified - analyze first frame)
+            # Handle video upload with frame extraction and analysis
             if 'file' not in request.files:
                 return jsonify({'success': False, 'error': 'No file uploaded'}), 400
-            
+
             file = request.files['file']
+            if file.filename == '':
+                return jsonify({'success': False, 'error': 'No file selected'}), 400
+
             if not Config.allowed_file(file.filename, 'video'):
                 return jsonify({'success': False, 'error': 'Invalid file type'}), 400
-            
-            # Save file
+
+            # Save video file
             filename = secure_filename(file.filename)
             timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             filename = f"{timestamp}_{filename}"
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
-            
-            # For now, return a message that video analysis requires frame extraction
-            return jsonify({
-                'success': True,
-                'type': 'video',
-                'analysis': 'Video uploaded successfully. For detailed analysis, please extract a frame showing the issue and upload as an image.',
-                'videos': [],
-                'video_url': f'/uploads/{filename}',
-                'timestamp': datetime.now().isoformat()
-            })
+
+            # Extract first frame from video
+            frame_path = extract_video_frame(filepath, app.config['UPLOAD_FOLDER'], frame_number=0)
+
+            if frame_path and os.path.exists(frame_path):
+                # Analyze the extracted frame with Gemini
+                analysis_result = gemini_service.analyze_image(frame_path)
+
+                if analysis_result['success']:
+                    # Use search keywords extracted from Gemini analysis
+                    search_keywords = analysis_result.get('search_keywords', [])
+
+                    # Fallback queries if no keywords extracted
+                    if not search_keywords:
+                        component_type = analysis_result.get('component_type', 'repair')
+                        search_keywords = [f"Alto {component_type} repair", "Alto car maintenance"]
+
+                    # Search YouTube using extracted keywords
+                    youtube_result = youtube_service.search_multiple_queries(search_keywords)
+
+                    return jsonify({
+                        'success': True,
+                        'type': 'video',
+                        'analysis': analysis_result['analysis'],
+                        'component_type': analysis_result.get('component_type', 'unknown'),
+                        'search_keywords': search_keywords,
+                        'videos': youtube_result.get('videos', []),
+                        'video_url': f'/uploads/{filename}',
+                        'frame_url': f'/uploads/{os.path.basename(frame_path)}',
+                        'timestamp': datetime.now().isoformat()
+                    })
+                else:
+                    return jsonify(analysis_result), 500
+            else:
+                # Frame extraction failed - return message asking user to upload image
+                return jsonify({
+                    'success': True,
+                    'type': 'video',
+                    'analysis': 'Video uploaded but could not extract frame for analysis. Please try uploading an image instead.',
+                    'videos': [],
+                    'video_url': f'/uploads/{filename}',
+                    'timestamp': datetime.now().isoformat()
+                })
         
         else:
             return jsonify({'success': False, 'error': 'Invalid request type'}), 400
@@ -223,16 +302,16 @@ if __name__ == '__main__':
     
     # Check if API keys are configured
     if not Config.GEMINI_API_KEY:
-        print("\n⚠️  WARNING: GEMINI_API_KEY not configured!")
+        print("\n[!] WARNING: GEMINI_API_KEY not configured!")
         print("Please set it in Render environment variables\n")
-    
+
     if not Config.YOUTUBE_API_KEY:
-        print("\n⚠️  WARNING: YOUTUBE_API_KEY not configured!")
+        print("\n[!] WARNING: YOUTUBE_API_KEY not configured!")
         print("Please set it in Render environment variables\n")
     
-    print(f"\n🚗 {Config.APP_NAME} v{Config.APP_VERSION}")
-    print(f"🌐 Starting server on port {port}")
-    print(f"📊 Environment: {os.environ.get('FLASK_ENV', 'development')}\n")
+    print(f"\n[CAR] {Config.APP_NAME} v{Config.APP_VERSION}")
+    print(f"[WEB] Starting server on port {port}")
+    print(f"[INFO] Environment: {os.environ.get('FLASK_ENV', 'development')}\n")
     
     # Bind to 0.0.0.0 for Render
     app.run(host='0.0.0.0', port=port, debug=Config.DEBUG)
