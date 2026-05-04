@@ -190,84 +190,91 @@ def analyze():
         
         elif request_type == 'video':
             # Handle video upload with frame extraction and analysis
-            if 'file' not in request.files:
-                return jsonify({'success': False, 'error': 'No file uploaded'}), 400
+            try:
+                if 'file' not in request.files:
+                    return jsonify({'success': False, 'error': 'No file uploaded'}), 400
 
-            file = request.files['file']
-            if file.filename == '':
-                return jsonify({'success': False, 'error': 'No file selected'}), 400
+                file = request.files['file']
+                if file.filename == '':
+                    return jsonify({'success': False, 'error': 'No file selected'}), 400
 
-            if not Config.allowed_file(file.filename, 'video'):
-                return jsonify({'success': False, 'error': 'Invalid file type'}), 400
+                if not Config.allowed_file(file.filename, 'video'):
+                    return jsonify({'success': False, 'error': 'Invalid file type'}), 400
 
-            # Save video file
-            filename = secure_filename(file.filename)
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f"{timestamp}_{filename}"
-            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
-            file.save(filepath)
+                # Save video file
+                filename = secure_filename(file.filename)
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                filename = f"{timestamp}_{filename}"
+                filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                file.save(filepath)
 
-            # Extract multiple frames from video
-            frame_paths = extract_video_frames(filepath, app.config['UPLOAD_FOLDER'], num_frames=5)
+                # Extract multiple frames from video (reduced to 3 for faster processing)
+                frame_paths = extract_video_frames(filepath, app.config['UPLOAD_FOLDER'], num_frames=3)
 
-            if frame_paths and len(frame_paths) > 0:
-                # Analyze all extracted frames with Gemini
-                all_analyses = []
-                all_keywords = []
-                component_types = []
+                if frame_paths and len(frame_paths) > 0:
+                    # Analyze all extracted frames with Gemini
+                    all_analyses = []
+                    all_keywords = []
+                    component_types = []
 
-                for frame_path in frame_paths:
-                    result = gemini_service.analyze_image(frame_path)
-                    if result['success']:
-                        all_analyses.append(result['analysis'])
-                        if result.get('search_keywords'):
-                            all_keywords.extend(result['search_keywords'])
-                        if result.get('component_type'):
-                            component_types.append(result['component_type'])
+                    for frame_path in frame_paths:
+                        result = gemini_service.analyze_image(frame_path)
+                        if result['success']:
+                            all_analyses.append(result['analysis'])
+                            if result.get('search_keywords'):
+                                all_keywords.extend(result['search_keywords'])
+                            if result.get('component_type'):
+                                component_types.append(result['component_type'])
 
-                if all_analyses:
-                    # Use the most detailed analysis (longest text) as the primary one
-                    best_analysis = max(all_analyses, key=len)
+                    if all_analyses:
+                        # Use the most detailed analysis (longest text) as the primary one
+                        best_analysis = max(all_analyses, key=len)
 
-                    # Get unique search keywords (limit to 5)
-                    search_keywords = list(set(all_keywords))[:5] if all_keywords else ['Alto car repair', 'Maruti Alto maintenance']
+                        # Get unique search keywords (limit to 5)
+                        search_keywords = list(set(all_keywords))[:5] if all_keywords else ['Alto car repair', 'Maruti Alto maintenance']
 
-                    # Get most common component type
-                    component_type = max(set(component_types), key=component_types.count) if component_types else 'general'
+                        # Get most common component type
+                        component_type = max(set(component_types), key=component_types.count) if component_types else 'general'
 
-                    # Search YouTube using extracted keywords
-                    youtube_result = youtube_service.search_multiple_queries(search_keywords)
+                        # Search YouTube using extracted keywords
+                        youtube_result = youtube_service.search_multiple_queries(search_keywords)
 
-                    # Get frame URLs for display
-                    frame_urls = [f'/uploads/{os.path.basename(fp)}' for fp in frame_paths]
+                        # Get frame URLs for display
+                        frame_urls = [f'/uploads/{os.path.basename(fp)}' for fp in frame_paths]
 
+                        return jsonify({
+                            'success': True,
+                            'type': 'video',
+                            'analysis': best_analysis,
+                            'component_type': component_type,
+                            'search_keywords': search_keywords,
+                            'videos': youtube_result.get('videos', []),
+                            'video_url': f'/uploads/{filename}',
+                            'frame_urls': frame_urls,
+                            'frames_analyzed': len(all_analyses),
+                            'timestamp': datetime.now().isoformat()
+                        })
+                    else:
+                        return jsonify({
+                            'success': False,
+                            'error': 'Could not analyze any frames from the video'
+                        }), 500
+                else:
+                    # Frame extraction failed - return message asking user to upload image
                     return jsonify({
                         'success': True,
                         'type': 'video',
-                        'analysis': best_analysis,
-                        'component_type': component_type,
-                        'search_keywords': search_keywords,
-                        'videos': youtube_result.get('videos', []),
+                        'analysis': 'Video uploaded but could not extract frames for analysis. Please try uploading an image instead.',
+                        'videos': [],
                         'video_url': f'/uploads/{filename}',
-                        'frame_urls': frame_urls,
-                        'frames_analyzed': len(all_analyses),
                         'timestamp': datetime.now().isoformat()
                     })
-                else:
-                    return jsonify({
-                        'success': False,
-                        'error': 'Could not analyze any frames from the video'
-                    }), 500
-            else:
-                # Frame extraction failed - return message asking user to upload image
+            except Exception as e:
+                print(f"Video analysis error: {e}")
                 return jsonify({
-                    'success': True,
-                    'type': 'video',
-                    'analysis': 'Video uploaded but could not extract frames for analysis. Please try uploading an image instead.',
-                    'videos': [],
-                    'video_url': f'/uploads/{filename}',
-                    'timestamp': datetime.now().isoformat()
-                })
+                    'success': False,
+                    'error': f'Video analysis failed: {str(e)}'
+                }), 500
         
         else:
             return jsonify({'success': False, 'error': 'Invalid request type'}), 400
