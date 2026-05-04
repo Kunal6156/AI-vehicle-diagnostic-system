@@ -17,46 +17,66 @@ app.config.from_object(Config)
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 
-def extract_video_frame(video_path, output_dir, frame_number=0):
+def extract_video_frames(video_path, output_dir, num_frames=5):
     """
-    Extract a specific frame from a video file.
+    Extract multiple frames from a video file at evenly spaced intervals.
 
     Args:
         video_path: Path to the video file
-        output_dir: Directory to save the extracted frame
-        frame_number: Frame index to extract (default: 0 = first frame)
+        output_dir: Directory to save the extracted frames
+        num_frames: Number of frames to extract (default: 5)
 
     Returns:
-        str: Path to the extracted frame image, or None if extraction fails
+        list: List of paths to extracted frame images, or empty list if extraction fails
     """
     try:
         cap = cv2.VideoCapture(video_path)
         if not cap.isOpened():
             print(f"Error: Could not open video file {video_path}")
-            return None
+            return []
 
-        # Set frame position
-        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_number)
+        # Get total frame count and FPS to calculate duration
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        fps = cap.get(cv2.CAP_PROP_FPS)
 
-        ret, frame = cap.read()
+        if total_frames <= 0 or fps <= 0:
+            print(f"Error: Could not determine video properties")
+            cap.release()
+            return []
+
+        total_duration_frames = total_frames
         cap.release()
 
-        if not ret:
-            print(f"Error: Could not read frame {frame_number} from video")
-            return None
+        # Calculate frame positions (evenly spaced)
+        frame_positions = []
+        for i in range(num_frames):
+            frame_num = int((i / (num_frames - 1)) * (total_duration_frames - 1)) if num_frames > 1 else 0
+            frame_positions.append(frame_num)
 
-        # Generate output filename
+        # Extract each frame
+        frame_paths = []
         video_filename = os.path.basename(video_path)
-        frame_filename = f"frame_{frame_number}_{video_filename.rsplit('.', 1)[0]}.jpg"
-        frame_path = os.path.join(output_dir, frame_filename)
+        base_name = video_filename.rsplit('.', 1)[0]
 
-        # Save frame
-        cv2.imwrite(frame_path, frame)
-        return frame_path
+        for idx, frame_num in enumerate(frame_positions):
+            cap = cv2.VideoCapture(video_path)
+            cap.set(cv2.CAP_PROP_POS_FRAMES, frame_num)
+
+            ret, frame = cap.read()
+            cap.release()
+
+            if ret:
+                frame_filename = f"frame_{idx}_{base_name}.jpg"
+                frame_path = os.path.join(output_dir, frame_filename)
+                cv2.imwrite(frame_path, frame)
+                frame_paths.append(frame_path)
+                print(f"Extracted frame {idx} at position {frame_num}")
+
+        return frame_paths
 
     except Exception as e:
-        print(f"Error extracting video frame: {e}")
-        return None
+        print(f"Error extracting video frames: {e}")
+        return []
 
 # Initialize services
 try:
@@ -187,44 +207,63 @@ def analyze():
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
 
-            # Extract first frame from video
-            frame_path = extract_video_frame(filepath, app.config['UPLOAD_FOLDER'], frame_number=0)
+            # Extract multiple frames from video
+            frame_paths = extract_video_frames(filepath, app.config['UPLOAD_FOLDER'], num_frames=5)
 
-            if frame_path and os.path.exists(frame_path):
-                # Analyze the extracted frame with Gemini
-                analysis_result = gemini_service.analyze_image(frame_path)
+            if frame_paths and len(frame_paths) > 0:
+                # Analyze all extracted frames with Gemini
+                all_analyses = []
+                all_keywords = []
+                component_types = []
 
-                if analysis_result['success']:
-                    # Use search keywords extracted from Gemini analysis
-                    search_keywords = analysis_result.get('search_keywords', [])
+                for frame_path in frame_paths:
+                    result = gemini_service.analyze_image(frame_path)
+                    if result['success']:
+                        all_analyses.append(result['analysis'])
+                        if result.get('search_keywords'):
+                            all_keywords.extend(result['search_keywords'])
+                        if result.get('component_type'):
+                            component_types.append(result['component_type'])
 
-                    # Fallback queries if no keywords extracted
-                    if not search_keywords:
-                        component_type = analysis_result.get('component_type', 'repair')
-                        search_keywords = [f"Alto {component_type} repair", "Alto car maintenance"]
+                if all_analyses:
+                    # Use the most detailed analysis (longest text) as the primary one
+                    best_analysis = max(all_analyses, key=len)
+
+                    # Get unique search keywords (limit to 5)
+                    search_keywords = list(set(all_keywords))[:5] if all_keywords else ['Alto car repair', 'Maruti Alto maintenance']
+
+                    # Get most common component type
+                    component_type = max(set(component_types), key=component_types.count) if component_types else 'general'
 
                     # Search YouTube using extracted keywords
                     youtube_result = youtube_service.search_multiple_queries(search_keywords)
 
+                    # Get frame URLs for display
+                    frame_urls = [f'/uploads/{os.path.basename(fp)}' for fp in frame_paths]
+
                     return jsonify({
                         'success': True,
                         'type': 'video',
-                        'analysis': analysis_result['analysis'],
-                        'component_type': analysis_result.get('component_type', 'unknown'),
+                        'analysis': best_analysis,
+                        'component_type': component_type,
                         'search_keywords': search_keywords,
                         'videos': youtube_result.get('videos', []),
                         'video_url': f'/uploads/{filename}',
-                        'frame_url': f'/uploads/{os.path.basename(frame_path)}',
+                        'frame_urls': frame_urls,
+                        'frames_analyzed': len(all_analyses),
                         'timestamp': datetime.now().isoformat()
                     })
                 else:
-                    return jsonify(analysis_result), 500
+                    return jsonify({
+                        'success': False,
+                        'error': 'Could not analyze any frames from the video'
+                    }), 500
             else:
                 # Frame extraction failed - return message asking user to upload image
                 return jsonify({
                     'success': True,
                     'type': 'video',
-                    'analysis': 'Video uploaded but could not extract frame for analysis. Please try uploading an image instead.',
+                    'analysis': 'Video uploaded but could not extract frames for analysis. Please try uploading an image instead.',
                     'videos': [],
                     'video_url': f'/uploads/{filename}',
                     'timestamp': datetime.now().isoformat()
