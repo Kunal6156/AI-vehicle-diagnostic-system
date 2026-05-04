@@ -49,9 +49,14 @@ def extract_video_frames(video_path, output_dir, num_frames=5):
 
         # Calculate frame positions (evenly spaced)
         frame_positions = []
-        for i in range(num_frames):
-            frame_num = int((i / (num_frames - 1)) * (total_duration_frames - 1)) if num_frames > 1 else 0
+        if num_frames == 1:
+            # Extract middle frame when only 1 frame requested
+            frame_num = total_duration_frames // 2
             frame_positions.append(frame_num)
+        else:
+            for i in range(num_frames):
+                frame_num = int((i / (num_frames - 1)) * (total_duration_frames - 1))
+                frame_positions.append(frame_num)
 
         # Extract each frame
         frame_paths = []
