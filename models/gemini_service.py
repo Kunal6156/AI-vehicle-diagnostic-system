@@ -58,6 +58,15 @@ Provide a detailed, practical response that would help an Alto car owner underst
 
             # Generate response
             response = self.model.generate_content([prompt, img])
+
+            # Check if response is valid
+            if not response.parts:
+                return {
+                    'success': False,
+                    'error': 'Content blocked by safety filters or empty response',
+                    'analysis': 'Unable to analyze this image. Please try a different image.'
+                }
+
             response_text = response.text
 
             # Extract search keywords from the response
