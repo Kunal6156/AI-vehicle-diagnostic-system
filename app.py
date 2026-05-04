@@ -208,57 +208,39 @@ def analyze():
                 filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
                 file.save(filepath)
 
-                # Extract multiple frames from video (reduced to 3 for faster processing)
-                frame_paths = extract_video_frames(filepath, app.config['UPLOAD_FOLDER'], num_frames=3)
+                # Extract single frame from video (to reduce memory usage)
+                frame_paths = extract_video_frames(filepath, app.config['UPLOAD_FOLDER'], num_frames=1)
 
                 if frame_paths and len(frame_paths) > 0:
-                    # Analyze all extracted frames with Gemini
-                    all_analyses = []
-                    all_keywords = []
-                    component_types = []
+                    # Analyze the frame with Gemini
+                    frame_path = frame_paths[0]
+                    analysis_result = gemini_service.analyze_image(frame_path)
 
-                    for frame_path in frame_paths:
-                        result = gemini_service.analyze_image(frame_path)
-                        if result['success']:
-                            all_analyses.append(result['analysis'])
-                            if result.get('search_keywords'):
-                                all_keywords.extend(result['search_keywords'])
-                            if result.get('component_type'):
-                                component_types.append(result['component_type'])
+                    if analysis_result['success']:
+                        # Use search keywords extracted from Gemini analysis
+                        search_keywords = analysis_result.get('search_keywords', [])
 
-                    if all_analyses:
-                        # Use the most detailed analysis (longest text) as the primary one
-                        best_analysis = max(all_analyses, key=len)
-
-                        # Get unique search keywords (limit to 5)
-                        search_keywords = list(set(all_keywords))[:5] if all_keywords else ['Alto car repair', 'Maruti Alto maintenance']
-
-                        # Get most common component type
-                        component_type = max(set(component_types), key=component_types.count) if component_types else 'general'
+                        # Fallback queries if no keywords extracted
+                        if not search_keywords:
+                            component_type = analysis_result.get('component_type', 'repair')
+                            search_keywords = [f"Alto {component_type} repair", "Alto car maintenance"]
 
                         # Search YouTube using extracted keywords
                         youtube_result = youtube_service.search_multiple_queries(search_keywords)
 
-                        # Get frame URLs for display
-                        frame_urls = [f'/uploads/{os.path.basename(fp)}' for fp in frame_paths]
-
                         return jsonify({
                             'success': True,
                             'type': 'video',
-                            'analysis': best_analysis,
-                            'component_type': component_type,
+                            'analysis': analysis_result['analysis'],
+                            'component_type': analysis_result.get('component_type', 'unknown'),
                             'search_keywords': search_keywords,
                             'videos': youtube_result.get('videos', []),
                             'video_url': f'/uploads/{filename}',
-                            'frame_urls': frame_urls,
-                            'frames_analyzed': len(all_analyses),
+                            'frame_url': f'/uploads/{os.path.basename(frame_path)}',
                             'timestamp': datetime.now().isoformat()
                         })
                     else:
-                        return jsonify({
-                            'success': False,
-                            'error': 'Could not analyze any frames from the video'
-                        }), 500
+                        return jsonify(analysis_result), 500
                 else:
                     # Frame extraction failed - return message asking user to upload image
                     return jsonify({
