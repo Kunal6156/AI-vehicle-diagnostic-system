@@ -69,6 +69,9 @@ Provide a detailed, practical response that would help an Alto car owner underst
 
             response_text = response.text
 
+            # Format the response to remove hyphens/apostrophes and make headings bold
+            response_text = self._format_analysis_response(response_text)
+
             # Extract search keywords from the response
             search_keywords = self._extract_search_keywords(response_text)
 
@@ -114,11 +117,13 @@ Provide a comprehensive answer that includes:
 Format your response clearly with proper sections."""
 
             response = self.model.generate_content(prompt)
-            
+
+            response_text = self._format_analysis_response(response.text)
+
             return {
                 'success': True,
-                'analysis': response.text,
-                'search_keywords': self._extract_search_keywords(response.text)
+                'analysis': response_text,
+                'search_keywords': self._extract_search_keywords(response_text)
             }
             
         except Exception as e:
@@ -168,10 +173,12 @@ Provide:
 Be specific to Maruti Alto cars when possible."""
 
             response = self.model.generate_content([prompt, img])
-            
+
+            response_text = self._format_analysis_response(response.text)
+
             return {
                 'success': True,
-                'analysis': response.text,
+                'analysis': response_text,
                 'component_type': 'video_analysis'
             }
             
@@ -229,3 +236,30 @@ Be specific to Maruti Alto cars when possible."""
                     keywords.append(kw)
 
         return keywords[:5] if keywords else ['Alto car repair', 'Maruti Alto maintenance']
+
+    def _format_analysis_response(self, text):
+        """Format Gemini response: remove hyphens/apostrophes from headings and make them bold"""
+        import re
+
+        # Pattern to match headings: lines starting with number or dash followed by heading text
+        # Examples: "1. COMPONENT IDENTIFICATION:", "- COMPONENT IDENTIFICATION:", "'COMPONENT IDENTIFICATION:"
+        lines = text.split('\n')
+        formatted_lines = []
+
+        for line in lines:
+            stripped = line.strip()
+
+            # Match patterns like:
+            # "1. HEADING:", "- HEADING:", "'HEADING:", "HEADING:"
+            # With optional number or dash or apostrophe prefix
+            match = re.match(r"^(\d+\.?\s*|[-' ]*)([A-Z][A-Z\s]+:)", stripped)
+            if match:
+                # Extract the heading text (without leading numbers, dashes, apostrophes)
+                heading = match.group(2)
+                # Make it bold using ** for markdown
+                formatted_line = f"**{heading}**" + stripped[len(match.group(1) + heading):]
+                formatted_lines.append(formatted_line)
+            else:
+                formatted_lines.append(line)
+
+        return '\n'.join(formatted_lines)

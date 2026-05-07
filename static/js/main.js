@@ -64,10 +64,15 @@ function hideError() {
 
 // Display analysis results
 function displayResults(data) {
-    // Display analysis text
+    // Display analysis text with markdown rendering
     const analysisDiv = document.getElementById('analysis-text');
-    analysisDiv.textContent = data.analysis || 'No analysis available';
-    
+    const analysisText = data.analysis || 'No analysis available';
+    // Convert **bold** to <strong>bold</strong> and preserve line breaks
+    const formattedText = analysisText
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>');
+    analysisDiv.innerHTML = formattedText;
+
     // Display videos
     const videosContainer = document.getElementById('videos-container');
     videosContainer.innerHTML = '';
