@@ -238,11 +238,11 @@ Be specific to Maruti Alto cars when possible."""
         return keywords[:5] if keywords else ['Alto car repair', 'Maruti Alto maintenance']
 
     def _format_analysis_response(self, text):
-        """Format Gemini response: remove hyphens/apostrophes from headings and make them bold"""
+        """Format Gemini response: remove hyphens/apostrophes/# from headings and make them bold"""
         import re
 
-        # Pattern to match headings: lines starting with number or dash followed by heading text
-        # Examples: "1. COMPONENT IDENTIFICATION:", "- COMPONENT IDENTIFICATION:", "'COMPONENT IDENTIFICATION:"
+        # Pattern to match headings: lines starting with #, number, dash or apostrophe followed by heading text
+        # Examples: "### 1. COMPONENT IDENTIFICATION:", "- COMPONENT IDENTIFICATION:", "'COMPONENT IDENTIFICATION:"
         lines = text.split('\n')
         formatted_lines = []
 
@@ -250,14 +250,15 @@ Be specific to Maruti Alto cars when possible."""
             stripped = line.strip()
 
             # Match patterns like:
-            # "1. HEADING:", "- HEADING:", "'HEADING:", "HEADING:"
-            # With optional number or dash or apostrophe prefix
-            match = re.match(r"^(\d+\.?\s*|[-' ]*)([A-Z][A-Z\s]+:)", stripped)
+            # "### 1. HEADING:", "1. HEADING:", "- HEADING:", "'HEADING:", "HEADING:"
+            # With optional #, number, dash or apostrophe prefix
+            match = re.match(r"^(#+\s*|\d+\.?\s*|[-' ]*)([A-Z][A-Z\s]+:)", stripped)
             if match:
-                # Extract the heading text (without leading numbers, dashes, apostrophes)
+                # Extract the heading text (without leading #, numbers, dashes, apostrophes)
                 heading = match.group(2)
                 # Make it bold using ** for markdown
-                formatted_line = f"**{heading}**" + stripped[len(match.group(1) + heading):]
+                prefix_len = len(match.group(1))
+                formatted_line = f"**{heading}**" + stripped[prefix_len + len(heading):]
                 formatted_lines.append(formatted_line)
             else:
                 formatted_lines.append(line)
